@@ -1,0 +1,34 @@
+<ons-page id="editbank">
+    <ons-toolbar>
+      <div class="left"><ons-back-button>Back</ons-back-button></div>
+      <div class="center" data-i18neditbank="Bank Account Details">Bank Account Details</div>
+    </ons-toolbar>
+    <div class="screen-wrap-white" style="display: flex;flex-direction: column;">
+
+      <div class="rem-scroll" style="width:90%;margin-left:auto;margin-right:auto;overflow-y: scroll;height:100%;">
+
+        <p style="margin: 30px 0;" data-i18neditbank="Valid bank account information is required for payment of your earnings">Valid bank account information is required for payment of your earnings</p>
+
+        <ons-input style="width: 100%;margin-bottom:15px;display: block;" id="bankaccountname" modifier="underbar" data-i18nneditbank="Account name" placeholder="Account name" float></ons-input>
+
+        <ons-input style="width: 100%;margin-bottom:15px;display: block;" id="bankaccountnum" modifier="underbar" data-i18nneditbank="Account number" placeholder="Account number" float></ons-input>
+
+        <ons-input data-bankcode="" readonly style="width: 100%;margin-bottom:15px;display: block;" id="selbankname" modifier="underbar" data-i18nneditbank="Select Bank" placeholder="Select Bank" float></ons-input>
+
+        <ons-input style="width: 100%;margin-bottom:15px;display:none" id="otherbankname" modifier="underbar" data-i18nneditbank="Bank name" placeholder="Bank name" float></ons-input>
+
+        <ons-input style="width: 100%;margin-bottom:15px;display: none;" id="otherbankcode" modifier="underbar" data-i18nneditbank="Bank identification code" placeholder="Bank identification code" float></ons-input>
+      
+
+        <p id="editbankerrormsg" style="font-size:12px;color:red" ></p>
+        
+
+      </div>
+
+      <div style="width: 100%;flex-shrink: 0;text-align: center;padding-bottom: 15px;padding-top:10px;background-color: #fff;" >        
+        <ons-button id="edit-car-btn" onclick = "updateBankDetails()" style="width:90%;margin-left: auto;margin-right: auto;" data-i18neditcar="Update" modifier="large" >Update</ons-button>       
+      </div>
+
+    </div>  
+  </ons-page>
+  

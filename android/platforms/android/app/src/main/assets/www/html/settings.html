@@ -1,0 +1,52 @@
+<ons-page id="settings">
+    <ons-toolbar>
+      <div class="left"><ons-back-button>Back</ons-back-button></div>
+      <div class="center" data-i18nsettings="Settings">Settings</div>
+      
+    </ons-toolbar>
+    <div class="screen-wrap-white">
+      <ons-list>
+        <ons-list-item tappable style="cursor: pointer" modifier="longdivider" onclick="setAlwaysOnTop()" >
+          <div class="left">
+            <ons-icon icon="fa-window-restore" size="18px" style="color: rgb(56, 56, 56);"></ons-icon>
+          </div>
+          <div class="center">
+              <span class='list-item__title' data-i18nsettings="Draw over other apps">Draw over other apps</span>
+              <span class='list-item__subtitle' data-i18nsettings="Bring app to the foreground when a ride request is received">Bring app to the foreground when a ride request is received</span>
+          </div>
+          <div class="right">
+            <!-- <ons-icon icon='fa-check-circle' size='20px' style='color:green;'></ons-icon> --> 
+          </div>
+        </ons-list-item>
+            
+        <ons-list-item tappable style="cursor: pointer" modifier="longdivider" onclick="setBackgroundMode()" >
+          <div class="left">
+            <ons-icon icon="fa-battery-half" size="18px" style="color: rgb(255, 209, 6);"></ons-icon>
+          </div>
+          <div class="center">
+              <span class='list-item__title' data-i18nsettings="Background mode">Background mode</span>
+              <span class='list-item__subtitle' data-i18nsettings="Allows app to always run in the background">Allows app to always run in the background</span>
+          </div>
+          <div class="right" id="background-mode-status-ind">
+            <ons-icon icon='fa-times' size='20px' style='color:red;'></ons-icon>
+          </div>
+        </ons-list-item>
+
+
+        <ons-list-item tappable style="cursor: pointer" modifier="longdivider" onclick="setAltCars()" >
+          <div class="left">
+            <ons-icon icon="fa-random" size="18px" style="color: rgb(19, 6, 255);"></ons-icon>
+          </div>
+          <div class="center">
+              <span class='list-item__title' data-i18nsettings="Allow other trips">Allow other trips</span>
+              <span class='list-item__subtitle' data-i18nsettings="Receive trip requests from other vehicle categories if available">Receive trip requests from other vehicle categories if available</span>
+          </div>
+          <div class="right" id="alt-cars-status-ind">
+            <ons-icon icon='fa-times' size='20px' style='color:red;'></ons-icon>
+          </div>
+        </ons-list-item>
+
+      </ons-list>
+    </div>  
+  </ons-page>
+  

@@ -1,0 +1,91 @@
+{
+    "name": "helloworld",
+    "displayName": "HelloCordova",
+    "version": "1.0.0",
+    "description": "A sample Apache Cordova application that responds to the deviceready event.",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Apache Cordova Team",
+    "license": "Apache-2.0",
+    "dependencies": {
+        "cordova-plugin-call-number": "1.0.1",
+        "cordova-plugin-device": "2.0.3",
+        "cordova-plugin-file": "6.0.2",
+        "cordova-plugin-media": "5.0.3",
+        "cordova-plugin-network-information": "2.0.2",
+        "cordova-plugin-request-location-accuracy": "2.3.0"
+    },
+    "cordova": {
+        "plugins": {
+            "cordova-plugin-call-number": {},
+            "cordova-plugin-request-location-accuracy": {
+                "PLAY_SERVICES_LOCATION_VERSION": "16.+"
+            },
+            "cordova-plugin-network-information": {},
+            "cordova-plugin-media": {},
+            "cordova-plugin-device": {},
+            "phonegap-plugin-mobile-accessibility": {},
+            "cordova-android-support-gradle-release": {
+                "ANDROID_SUPPORT_VERSION": "27.+"
+            },
+            "cordova-plugin-androidx-adapter": {},
+            "cordova-plugin-geolocation": {},
+            "com.peerio.cordova.plugin.carrier": {},
+            "cordova-plugin-background-mode": {},
+            "cordova.plugins.diagnostic": {
+                "ANDROIDX_VERSION": "1.0.0",
+                "ANDROIDX_APPCOMPAT_VERSION": "1.3.1"
+            },
+            "cordova-plugin-web-share": {},
+            "cordova-plugin-splashscreen": {},
+            "cordova-plugin-statusbar": {},
+            "cordova-plugin-ios-disable-bounce": {},
+            "cordova-plugin-ionic-keyboard": {},
+            "cordova-plugin-inappbrowser": {},
+            "@ahovakimyan/cordova-plugin-wkwebviewxhrfix": {},
+            "cordova-plugin-insomnia": {},
+            "cordova-plugin-camera": {},
+            "cordova-background-geolocation-plugin": {
+                "ALWAYS_USAGE_DESCRIPTION": "This app always requires location tracking",
+                "MOTION_USAGE_DESCRIPTION": "This app requires motion detection"
+            },
+            "skwas-cordova-plugin-datetimepicker": {},
+            "cordova-plugin-firebase-messaging": {
+                "IOS_FIREBASE_POD_VERSION": "10.17.0"
+            },
+            "cordova-plugin-firebase-authentication": {
+                "IOS_FIREBASE_POD_VERSION": "10.17.0"
+            },
+            "cordova-plugin-googlemaps": {}
+        },
+        "platforms": []
+    },
+    "devDependencies": {
+        "@ahovakimyan/cordova-plugin-wkwebviewxhrfix": "github:AraHovakimyan/cordova-plugin-wkwebviewxhrfix",
+        "com.peerio.cordova.plugin.carrier": "^1.0.4",
+        "cordova-android-support-gradle-release": "^3.0.1",
+        "cordova-background-geolocation-plugin": "^2.0.9",
+        "cordova-plugin-androidx-adapter": "^1.1.3",
+        "cordova-plugin-background-mode": "file:plugins/cordova-plugin-run-in-background",
+        "cordova-plugin-camera": "^7.0.0",
+        "cordova-plugin-firebase-authentication": "^7.0.1",
+        "cordova-plugin-firebase-messaging": "^8.0.1",
+        "cordova-plugin-geolocation": "^4.0.2",
+        "cordova-plugin-googlemaps": "github:dpa99c/cordova-plugin-googlemaps",
+        "cordova-plugin-googlemaps-sdk": "github:mapsplugin/cordova-plugin-googlemaps-sdk",
+        "cordova-plugin-inappbrowser": "^5.0.0",
+        "cordova-plugin-insomnia": "github:EddyVerbruggen/Insomnia-PhoneGap-Plugin",
+        "cordova-plugin-ionic-keyboard": "^2.2.0",
+        "cordova-plugin-ios-disable-bounce": "^0.0.1",
+        "cordova-plugin-splashscreen": "^6.0.1",
+        "cordova-plugin-statusbar": "^3.0.0",
+        "cordova-plugin-web-share": "^1.2.1",
+        "cordova-support-android-plugin": "^2.0.4",
+        "cordova-support-google-services": "^1.4.1",
+        "cordova.plugins.diagnostic": "^7.1.0",
+        "phonegap-plugin-mobile-accessibility": "^1.0.5",
+        "skwas-cordova-plugin-datetimepicker": "^3.0.2"
+    }
+}

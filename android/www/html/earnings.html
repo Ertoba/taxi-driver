@@ -1,0 +1,33 @@
+<ons-page id="earnings">
+    <ons-toolbar>
+      <div class="left"><ons-back-button>Back</ons-back-button></div>
+      <div class="center"><span id='earning-day' data-i18nearngs="Today">Today</span></div>
+      <div class="right"><ons-button id='sel-earning-day' style='color: black;width:50px;' modifier='outline'><ons-icon style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);font-size: 20px;" icon='fa-calendar' ></ons-icon></ons-button></div>
+    </ons-toolbar>
+    <div class="screen-wrap-white" style="display: flex;flex-direction: column;">
+
+        <div style="width:90%;margin:0 auto 40px auto;flex-shrink: 0;">
+            <h1 style="font-size:30px;text-align:center;margin:0;padding:20px 0 5px 0;" id="day-total-earning">0.00</h1>
+            <div style="margin:0 0 20px 0;font-size:14px;text-align:center;font-weight:bold;color:#777"><span data-i18nearngs="Trips">Trips</span> <span id="earn-num-trips">0</span></div>
+            <div style="width: 100%;padding: 10px;height: 150px;box-sizing: border-box;display:flex;flex-wrap:nowrap;justify-content:space-between;align-items: end;">
+                <div data-earndate="" data-amtearned="0" data-numrides="0" id="day-earn-bar-0" class="day-earn-bars" style="display:inline-block;min-width: 40px;height: 50%;background-color:var(--set-foreground-color);position: relative;transition: height 1s ease-in;"><div style="width:100%;display:inline-block;text-align:center;height:40px;position: absolute;bottom: -40px;color: #777;"><p style="margin:0;padding: 3px;font-size: 12px;font-weight: bold;" class="date-earn">30</p><p style="margin:0;font-size: 12px;font-weight: bold;" class="day-earn">Mon</p></div></div>
+                <div data-earndate="" data-amtearned="0" data-numrides="0" id="day-earn-bar-1" class="day-earn-bars" style="display:inline-block;min-width: 40px;height: 50%;background-color:var(--set-foreground-color);position: relative;transition: height 1s ease-in;"><div style="width:100%;display:inline-block;text-align:center;height:40px;position: absolute;bottom: -40px;color: #777;"><p style="margin:0;padding: 3px;font-size: 12px;font-weight: bold;" class="date-earn">31</p><p style="margin:0;font-size: 12px;font-weight: bold;" class="day-earn">Tue</p></div></div>
+                <div data-earndate="" data-amtearned="0" data-numrides="0" id="day-earn-bar-2" class="day-earn-bars" style="display:inline-block;min-width: 40px;height: 50%;background-color:var(--set-foreground-color);position: relative;transition: height 1s ease-in;"><div style="width:100%;display:inline-block;text-align:center;height:40px;position: absolute;bottom: -40px;color: #777;"><p style="margin:0;padding: 3px;font-size: 12px;font-weight: bold;" class="date-earn">1</p><p style="margin:0;font-size: 12px;font-weight: bold;" class="day-earn">Wed</p></div></div>
+                <div data-earndate="" data-amtearned="0" data-numrides="0" id="day-earn-bar-3" class="day-earn-bars" style="display:inline-block;min-width: 40px;height: 50%;background-color:var(--set-foreground-color);position: relative;transition: height 1s ease-in;"><div style="width:100%;display:inline-block;text-align:center;height:40px;position: absolute;bottom: -40px;color: #777;"><p style="margin:0;padding: 3px;font-size: 12px;font-weight: bold;" class="date-earn">2</p><p style="margin:0;font-size: 12px;font-weight: bold;" class="day-earn">Thu</p></div></div>
+                <div data-earndate="" data-amtearned="0" data-numrides="0" id="day-earn-bar-4" class="day-earn-bars" style="display:inline-block;min-width: 40px;height: 50%;background-color:var(--set-foreground-color);position: relative;transition: height 1s ease-in;"><div style="width:100%;display:inline-block;text-align:center;height:40px;position: absolute;bottom: -40px;color: #777;"><p style="margin:0;padding: 3px;font-size: 12px;font-weight: bold;" class="date-earn">3</p><p style="margin:0;font-size: 12px;font-weight: bold;" class="day-earn">Fri</p></div></div>
+                <div data-earndate="" data-amtearned="0" data-numrides="0" id="day-earn-bar-5" class="day-earn-bars" style="display:inline-block;min-width: 40px;height: 50%;background-color:var(--set-foreground-color);position: relative;transition: height 1s ease-in;"><div style="width:100%;display:inline-block;text-align:center;height:40px;position: absolute;bottom: -40px;color: #777;"><p style="margin:0;padding: 3px;font-size: 12px;font-weight: bold;" class="date-earn">4</p><p style="margin:0;font-size: 12px;font-weight: bold;" class="day-earn">Sat</p></div></div>
+                <div data-earndate="" data-amtearned="0" data-numrides="0" id="day-earn-bar-6" class="day-earn-bars" style="display:inline-block;min-width: 40px;height: 50%;background-color:var(--set-foreground-color);position: relative;transition: height 1s ease-in;"><div style="width:100%;display:inline-block;text-align:center;height:40px;position: absolute;bottom: -40px;color: #777;"><p style="margin:0;padding: 3px;font-size: 12px;font-weight: bold;" class="date-earn">5</p><p style="margin:0;font-size: 12px;font-weight: bold;" class="day-earn">Sun</p></div></div>          
+            </div>
+        </div>
+
+        <div style="width: 90%;margin-left:auto;margin-right:auto;background-color: #fff;overflow-y: scroll;height:100%;position: relative;" >        
+            <ons-list>
+                <div id="day-earnings"></div>
+            </ons-list>
+        </div>
+        
+        
+    </div>
+  
+  </ons-page>
+  
