@@ -1,11 +1,16 @@
-# DropTaxi driver apps
+# ride_on_driver
 
-Licensed DropTaxi 2.3.0 driver applications for the private `Ertoba/taxi-driver` repository.
+A new Flutter project.
 
-- `android/` — Cordova Android driver project
-- `ios/` — Cordova iOS driver project
+## Getting Started
 
-Firebase files, signing keys, provisioning profiles, and real `build.json` files are intentionally excluded from Git. Use the provided `build.example.json` templates and keep production values outside the repository.
+This project is a starting point for a Flutter application.
 
-The final Android/iOS rebuild is deferred until the backend domain, official license activation, Firebase, Google Maps APIs, notifications, authentication, background location, and Georgian localization are fully configured and verified.
+A few resources to get you started if this is your first Flutter project:
 
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
