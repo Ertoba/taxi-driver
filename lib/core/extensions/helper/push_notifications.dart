@@ -2,6 +2,7 @@
 
 import 'dart:collection';
 import 'dart:convert';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -262,19 +263,100 @@ Future<void> initializeNotifications() async {
   );
 }
 
+Map<String, dynamic>? _asStringMap(Object? value) {
+  if (value is! Map) return null;
+
+  return value.map(
+    (key, mapValue) => MapEntry(key.toString(), mapValue),
+  );
+}
+
+Future<Map<String, dynamic>?> _loadRideForPickupOtp(String rideId) async {
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      final snapshot = await FirebaseDatabase.instance
+          .ref()
+          .child('ride_requests')
+          .child(rideId)
+          .get();
+      final rideData = _asStringMap(snapshot.value);
+      final customerData = _asStringMap(rideData?['customer']);
+      final otp = (rideData?['OTP'] ?? rideData?['otp'] ?? '')
+          .toString()
+          .trim();
+      final phone = (customerData?['userPhone'] ?? '').toString().trim();
+
+      if (rideData != null && otp.isNotEmpty && phone.isNotEmpty) {
+        return rideData;
+      }
+    } catch (_) {
+      // Retry below because the realtime ride may still be synchronizing.
+    }
+
+    await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));
+  }
+
+  return null;
+}
+
 Future<void> sendRideAcceptedNotification({
   required String subscriptionId,
 }) async {
   final context = navigatorKey.currentContext;
-  if (context == null || subscriptionId.trim().isEmpty) return;
+  if (context == null) return;
+
+  if (subscriptionId.trim().isNotEmpty) {
+    try {
+      await httpPost(
+        Config.notifyRideAccepted,
+        {'subscription_id': subscriptionId},
+        context: context,
+      );
+    } catch (_) {
+      debugPrint('Unable to request the ride-accepted notification.');
+    }
+  }
+
+  final rideId = (box.get('ride_id') ?? '').toString().trim();
+  if (rideId.isEmpty) {
+    debugPrint('Pickup OTP SMS skipped because the ride ID is unavailable.');
+    return;
+  }
 
   try {
-    await httpPost(
-      Config.notifyRideAccepted,
-      {'subscription_id': subscriptionId},
+    final rideData = await _loadRideForPickupOtp(rideId);
+    final customerData = _asStringMap(rideData?['customer']);
+    final pickupOtp = (rideData?['OTP'] ?? rideData?['otp'] ?? '')
+        .toString()
+        .trim();
+    final riderPhone = (customerData?['userPhone'] ?? '').toString().trim();
+    final riderPhoneCountry =
+        (customerData?['userPhoneCountry'] ?? '').toString().trim();
+    final riderId = (rideData?['userId'] ?? '').toString().trim();
+
+    if (pickupOtp.isEmpty || riderPhone.isEmpty) {
+      debugPrint(
+        'Pickup OTP SMS skipped because Firebase ride data is incomplete.',
+      );
+      return;
+    }
+
+    final response = await httpPost(
+      Config.sendPickupOtp,
+      {
+        'ride_id': rideId,
+        'rider_id': riderId,
+        'rider_phone': riderPhone,
+        'rider_phone_country': riderPhoneCountry,
+        'pickup_otp': pickupOtp,
+      },
       context: context,
     );
-  } catch (e) {
-    debugPrint('Unable to request the ride-accepted notification.');
+
+    if (response is Map && response['success'] != true) {
+      debugPrint('Backend could not send the pickup OTP SMS.');
+    }
+  } catch (_) {
+    debugPrint('Unable to request the pickup OTP SMS.');
   }
 }
