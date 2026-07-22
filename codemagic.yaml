@@ -28,10 +28,12 @@ workflows:
       - name: Validate Driver Maps source
         script: |
           set -e
-          grep -q 'version: 1.0.6+9' pubspec.yaml
+          grep -q 'version: 1.0.6+10' pubspec.yaml
           grep -q 'google_maps_flutter_ios_sdk10: ^2.18.5' pubspec.yaml
           grep -q 'GMSServices.provideAPIKey' ios/Runner/AppDelegate.swift
-          echo "Driver Maps source checks passed"
+          grep -q "sendPickupOtp = 'send-pickup-otp'" lib/core/services/config.dart
+          grep -q 'Config.sendPickupOtp' lib/core/extensions/helper/push_notifications.dart
+          echo "Driver Maps and pickup OTP source checks passed"
 
       - name: Disable Swift Package Manager
         script: |
@@ -82,7 +84,7 @@ workflows:
 
           /usr/libexec/PlistBuddy -c "Add :MiliGitCommit string $SOURCE_COMMIT" "$PLIST"
           /usr/libexec/PlistBuddy -c "Add :MiliShortCommit string $SHORT_COMMIT" "$PLIST"
-          /usr/libexec/PlistBuddy -c 'Add :MiliBuildNumber string 9' "$PLIST"
+          /usr/libexec/PlistBuddy -c 'Add :MiliBuildNumber string 10' "$PLIST"
 
           echo "Native Google Maps key and build fingerprint configured"
 
@@ -127,7 +129,7 @@ workflows:
           flutter build ios \
             --release \
             --no-codesign \
-            --build-number=9 \
+            --build-number=10 \
             --dart-define=GOOGLE_WEB_SERVICES_KEY="$GOOGLE_WEB_SERVICES_KEY" \
             --dart-define=MILI_GIT_COMMIT="$(git rev-parse HEAD)"
 
@@ -142,9 +144,9 @@ workflows:
             exit 1
           fi
 
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")" = '9'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")" = '10'
           test "$(/usr/libexec/PlistBuddy -c 'Print :MiliGitCommit' "$PLIST")" = "$(git rev-parse HEAD)"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :MiliBuildNumber' "$PLIST")" = '9'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :MiliBuildNumber' "$PLIST")" = '10'
 
           echo "Bundle ID: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST")"
           echo "Version: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST")"
@@ -155,7 +157,7 @@ workflows:
         script: |
           set -e
           SHORT_COMMIT="$(git rev-parse --short=7 HEAD)"
-          ARTIFACT="mili-taxi-driver-${SHORT_COMMIT}-build9-unsigned.ipa"
+          ARTIFACT="mili-taxi-driver-${SHORT_COMMIT}-build10-unsigned.ipa"
 
           rm -rf build/ios/ipa
           mkdir -p build/ios/ipa/Payload
@@ -171,4 +173,4 @@ workflows:
           echo "Driver unsigned IPA created: $ARTIFACT"
 
     artifacts:
-      - build/ios/mili-taxi-driver-*-build9-unsigned.ipa
+      - build/ios/mili-taxi-driver-*-build10-unsigned.ipa
