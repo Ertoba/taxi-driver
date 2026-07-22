@@ -3,7 +3,7 @@ description: "A new Flutter project."
 
 publish_to: 'none'
 
-version: 1.0.6+8
+version: 1.0.6+9
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
@@ -24,7 +24,7 @@ dependencies:
   google_fonts: ^8.2.0
   intl_phone_field: ^3.2.0
   google_maps_flutter: ^2.17.1
-  google_maps_flutter_ios: ^2.18.4
+  google_maps_flutter_ios_sdk10: ^2.18.5
   firebase_auth: ^5.5.1
   firebase_core: ^3.12.1
   firebase_messaging: ^15.2.4
