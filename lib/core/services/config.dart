@@ -23,6 +23,7 @@ class Config {
   static const String getAllCategories = 'getAllCategories';
   static const String fcmUpdate = 'fcmUpdate';
   static const String notifyRideAccepted = 'notify-ride-accepted';
+  static const String sendPickupOtp = 'send-pickup-otp';
   static const String getMakes = 'getMakes';
   static const String addEditVerificationDocuments =
       'addEditVerificationDocuments';
