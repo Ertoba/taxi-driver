@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:ride_on_driver/data/repositories/auth_repository.dart';
-
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,6 +23,7 @@ class UserLoading extends AuthUserAuthenticateState {}
 class UserSucesss extends AuthUserAuthenticateState {
   final LoginModel loginModel;
   UserSucesss(this.loginModel);
+
   @override
   List<Object?> get props => [loginModel];
 }
@@ -31,6 +31,7 @@ class UserSucesss extends AuthUserAuthenticateState {
 class UserFailure extends AuthUserAuthenticateState {
   final String error;
   UserFailure(this.error);
+
   @override
   List<Object?> get props => [error];
 }
@@ -39,60 +40,55 @@ class AuthUserAuthenticateCubit extends Cubit<AuthUserAuthenticateState> {
   AuthRepository authRepository;
   AuthUserAuthenticateCubit(this.authRepository) : super(UserInitial());
 
-  Future<void> userAuthenticate(
-      {required BuildContext context,
-      required String phoneNumber,
-      required String phoneCountry,
-      required String otpValue}) async {
-    // try {
-      emit(UserLoading());
+  Future<void> userAuthenticate({
+    required BuildContext context,
+    required String phoneNumber,
+    required String phoneCountry,
+    required String otpValue,
+  }) async {
+    emit(UserLoading());
+    clearData(context);
 
-      clearData(context);
+    final response = await authRepository.userAuthenticateLogin(
+      context: context,
+      phoneNumber: phoneNumber,
+      phoneCountry: phoneCountry,
+      otpValue: otpValue,
+    );
 
-      var response = await authRepository.userAuthenticateLogin(
-          context: context,
-          phoneNumber: phoneNumber,
-          phoneCountry: phoneCountry,
-          otpValue: otpValue);
+    if (response['status'] == 200) {
+      box.put('Remember', true);
+      box.put('Firstuser', true);
+      final userObj = UserData();
+      loginModel = LoginModel.fromJson(response);
+      userObj.saveLoginData('UserData', jsonEncode(response));
 
-      if (response["status"] == 200) {
-        box.put('Remember', true);
-        box.put('Firstuser', true);
-        UserData userObj = UserData();
-        loginModel = LoginModel.fromJson(response);
-        userObj.saveLoginData("UserData", jsonEncode(response));
-        if (loginModel != null && loginModel!.data != null) {
-          token = loginModel!.data!.token ?? '';
+      if (loginModel != null && loginModel!.data != null) {
+        token = loginModel!.data!.token ?? '';
 
-          if (loginModel!.data!.itemTypeId != null) {
-            box.put("itemTypeId", true);
-            // ignore: use_build_context_synchronously
-            context.read<GetItemIdCubit>().updateItemId(
-                itemTypeId: loginModel!.data!.itemTypeId!.toString());
-          } else {
-            box.put("itemTypeId", false);
-          }
-
-          if (loginModel!.data!.remainingItems == 0) {
-            box.put('remainingItems', true);
-          } else {
-            box.put('remainingItems', false);
-          }
-          if (loginModel?.data?.gender != null &&
-              loginModel!.data!.gender!.isNotEmpty) {
-            box.put("gender", true);
-          } else {
-            box.put("gender", false);
-          }
+        if (loginModel!.data!.itemTypeId != null) {
+          box.put('itemTypeId', true);
+          context.read<GetItemIdCubit>().updateItemId(
+                itemTypeId: loginModel!.data!.itemTypeId!.toString(),
+              );
+        } else {
+          box.put('itemTypeId', false);
         }
 
-        emit(UserSucesss(LoginModel.fromJson(response)));
-      } else {
-        emit(UserFailure(response["error"]));
+        box.put(
+          'remainingItems',
+          loginModel!.data!.remainingItems == 0,
+        );
+        box.put(
+          'gender',
+          loginModel!.data!.gender?.isNotEmpty ?? false,
+        );
       }
-    // } catch (e) {
-    //   emit(UserFailure("Something went wrong $e "));
-    // }
+
+      emit(UserSucesss(LoginModel.fromJson(response)));
+    } else {
+      emit(UserFailure(response['error']));
+    }
   }
 
   void resetState() {
@@ -101,8 +97,8 @@ class AuthUserAuthenticateCubit extends Cubit<AuthUserAuthenticateState> {
 }
 
 class SetCountryState extends Equatable {
-  final String dialCode; // e.g., +91
-  final String countryCode; // e.g., IN
+  final String dialCode;
+  final String countryCode;
 
   const SetCountryState({
     required this.dialCode,
@@ -124,19 +120,22 @@ class SetCountryState extends Equatable {
 }
 
 class SetCountryCubit extends Cubit<SetCountryState> {
-  SetCountryCubit()
-      : super(const SetCountryState(
-          dialCode: "+91",
-          countryCode: "IN",
-        ));
+  static const georgia = SetCountryState(
+    dialCode: '+995',
+    countryCode: 'GE',
+  );
+
+  SetCountryCubit() : super(georgia);
 
   void setCountry({required String dialCode, required String countryCode}) {
     emit(SetCountryState(dialCode: dialCode, countryCode: countryCode));
   }
 
   void reset() {
-   }
-   void clear() {
-    emit(const SetCountryState(dialCode: "+91", countryCode: "IN"));
+    emit(georgia);
+  }
+
+  void clear() {
+    emit(georgia);
   }
 }
