@@ -1,5 +1,6 @@
 // ignore_for_file: unnecessary_string_interpolations
 
+import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
@@ -271,32 +272,69 @@ Map<String, dynamic>? _asStringMap(Object? value) {
   );
 }
 
-Future<Map<String, dynamic>?> _loadRideForPickupOtp(String rideId) async {
-  for (var attempt = 0; attempt < 3; attempt++) {
-    try {
-      final snapshot = await FirebaseDatabase.instance
-          .ref()
-          .child('ride_requests')
-          .child(rideId)
-          .get();
-      final rideData = _asStringMap(snapshot.value);
-      final customerData = _asStringMap(rideData?['customer']);
-      final otp = (rideData?['OTP'] ?? rideData?['otp'] ?? '')
-          .toString()
-          .trim();
-      final phone = (customerData?['userPhone'] ?? '').toString().trim();
+String _normalizedString(Object? value) => value?.toString().trim() ?? '';
 
-      if (rideData != null && otp.isNotEmpty && phone.isNotEmpty) {
-        return rideData;
-      }
-    } catch (_) {
-      // Retry below because the realtime ride may still be synchronizing.
+String _pickupOtpFromRide(Map<String, dynamic>? rideData) {
+  final otp = _normalizedString(rideData?['OTP'] ?? rideData?['otp']);
+  return RegExp(r'^\d{4,8}$').hasMatch(otp) ? otp : '';
+}
+
+bool _isTerminalRideStatus(String status) {
+  return status == 'cancelled' ||
+      status == 'canceled' ||
+      status == 'completed';
+}
+
+Future<Map<String, dynamic>?> _waitForRidePickupOtp(
+  String rideId, {
+  Duration timeout = const Duration(seconds: 60),
+}) async {
+  final completer = Completer<Map<String, dynamic>?>();
+  final rideRef = FirebaseDatabase.instance
+      .ref()
+      .child('ride_requests')
+      .child(rideId);
+  StreamSubscription<DatabaseEvent>? subscription;
+  Timer? timeoutTimer;
+
+  void complete(Map<String, dynamic>? data) {
+    if (!completer.isCompleted) {
+      completer.complete(data);
     }
-
-    await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));
   }
 
-  return null;
+  try {
+    subscription = rideRef.onValue.listen(
+      (event) {
+        final rideData = _asStringMap(event.snapshot.value);
+        if (rideData == null) return;
+
+        final status = _normalizedString(rideData['status']).toLowerCase();
+        if (_isTerminalRideStatus(status)) {
+          complete(null);
+          return;
+        }
+
+        final customerData = _asStringMap(rideData['customer']);
+        final pickupOtp = _pickupOtpFromRide(rideData);
+        final riderPhone = _normalizedString(customerData?['userPhone']);
+
+        if (pickupOtp.isNotEmpty && riderPhone.isNotEmpty) {
+          complete(rideData);
+        }
+      },
+      onError: (Object error) {
+        complete(null);
+      },
+      cancelOnError: true,
+    );
+
+    timeoutTimer = Timer(timeout, () => complete(null));
+    return await completer.future;
+  } finally {
+    timeoutTimer?.cancel();
+    await subscription?.cancel();
+  }
 }
 
 Future<void> sendRideAcceptedNotification({
@@ -317,26 +355,33 @@ Future<void> sendRideAcceptedNotification({
     }
   }
 
-  final rideId = (box.get('ride_id') ?? '').toString().trim();
+  final rideId = _normalizedString(box.get('ride_id'));
   if (rideId.isEmpty) {
     debugPrint('Pickup OTP SMS skipped because the ride ID is unavailable.');
     return;
   }
 
   try {
-    final rideData = await _loadRideForPickupOtp(rideId);
+    debugPrint('Waiting for Rider pickup OTP data.');
+    final rideData = await _waitForRidePickupOtp(rideId);
     final customerData = _asStringMap(rideData?['customer']);
-    final pickupOtp = (rideData?['OTP'] ?? rideData?['otp'] ?? '')
-        .toString()
-        .trim();
-    final riderPhone = (customerData?['userPhone'] ?? '').toString().trim();
+    final pickupOtp = _pickupOtpFromRide(rideData);
+    final riderPhone = _normalizedString(customerData?['userPhone']);
     final riderPhoneCountry =
-        (customerData?['userPhoneCountry'] ?? '').toString().trim();
-    final riderId = (rideData?['userId'] ?? '').toString().trim();
+        _normalizedString(customerData?['userPhoneCountry']);
+    final riderId = _normalizedString(rideData?['userId']);
+
+    debugPrint(
+      'Pickup OTP data ready: '
+      'otp_present=${pickupOtp.isNotEmpty}, '
+      'phone_present=${riderPhone.isNotEmpty}, '
+      'rider_id_present=${riderId.isNotEmpty}.',
+    );
 
     if (pickupOtp.isEmpty || riderPhone.isEmpty) {
       debugPrint(
-        'Pickup OTP SMS skipped because Firebase ride data is incomplete.',
+        'Pickup OTP SMS skipped after waiting because required ride data '
+        'did not become available.',
       );
       return;
     }
@@ -353,10 +398,14 @@ Future<void> sendRideAcceptedNotification({
       context: context,
     );
 
-    if (response is Map && response['success'] != true) {
+    if (response is Map && response['success'] == true) {
+      debugPrint('Pickup OTP SMS backend request accepted.');
+    } else {
       debugPrint('Backend could not send the pickup OTP SMS.');
     }
-  } catch (_) {
-    debugPrint('Unable to request the pickup OTP SMS.');
+  } catch (error) {
+    debugPrint(
+      'Unable to request the pickup OTP SMS (${error.runtimeType}).',
+    );
   }
 }
