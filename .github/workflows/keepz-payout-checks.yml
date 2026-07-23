@@ -3,7 +3,16 @@ name: Driver Keepz Payout Checks
 on:
   push:
     branches:
+      - main
       - feature/keepz-split-driver-payout
+    paths:
+      - 'lib/core/utils/keepz_iban.dart'
+      - 'lib/domain/entities/get_payment_type.dart'
+      - 'lib/presentation/screens/payment/**'
+      - 'test/keepz_iban_test.dart'
+      - 'pubspec.yaml'
+      - 'codemagic.yaml'
+      - '.github/workflows/keepz-payout-checks.yml'
   pull_request:
     paths:
       - 'lib/core/utils/keepz_iban.dart'
@@ -11,6 +20,7 @@ on:
       - 'lib/presentation/screens/payment/**'
       - 'test/keepz_iban_test.dart'
       - 'pubspec.yaml'
+      - 'codemagic.yaml'
       - '.github/workflows/keepz-payout-checks.yml'
 
 jobs:
