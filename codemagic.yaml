@@ -28,7 +28,7 @@ workflows:
       - name: Validate Driver source
         script: |
           set -e
-          grep -q 'version: 1.0.6+12' pubspec.yaml
+          grep -q 'version: 1.0.6+13' pubspec.yaml
           grep -q 'google_maps_flutter_ios_sdk10: ^2.18.5' pubspec.yaml
           grep -q 'GMSServices.provideAPIKey' ios/Runner/AppDelegate.swift
           grep -q "sendPickupOtp = 'send-pickup-otp'" lib/core/services/config.dart
@@ -36,9 +36,15 @@ workflows:
           grep -q 'Waiting for Rider pickup OTP data' lib/core/extensions/helper/push_notifications.dart
           grep -q '_waitForRidePickupOtp' lib/core/extensions/helper/push_notifications.dart
           grep -q '_stringValue' lib/domain/entities/initial_ride_request.dart
+          grep -q 'keepzReceiverIdentifier' lib/domain/entities/get_payment_type.dart
+          grep -q 'keepz_receiver_identifier' lib/presentation/screens/payment/add_payment_method_screen.dart
+          grep -q 'keepz split receiver' lib/presentation/screens/payment/payment_method_screen.dart
+          grep -q 'isValidGeorgianIban' lib/core/utils/keepz_iban.dart
           grep -q -- '- assets/language/' pubspec.yaml
           test -f assets/language/ka.json
-          echo "Driver Maps, safe pickup OTP and localization source checks passed"
+          test -f assets/language/en.json
+          test -f test/keepz_iban_test.dart
+          echo "Driver Maps, pickup OTP, Keepz IBAN and localization source checks passed"
 
       - name: Disable Swift Package Manager
         script: |
@@ -61,7 +67,23 @@ workflows:
           set -e
           dart format --output=none \
             lib/core/extensions/helper/push_notifications.dart \
-            lib/domain/entities/initial_ride_request.dart
+            lib/domain/entities/initial_ride_request.dart \
+            lib/core/utils/keepz_iban.dart \
+            lib/domain/entities/get_payment_type.dart \
+            lib/presentation/screens/payment/add_payment_method_screen.dart \
+            lib/presentation/screens/payment/payment_method_screen.dart \
+            test/keepz_iban_test.dart
+
+          flutter analyze --no-fatal-infos --no-fatal-warnings \
+            lib/core/utils/keepz_iban.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings \
+            lib/domain/entities/get_payment_type.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings \
+            lib/presentation/screens/payment/add_payment_method_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings \
+            lib/presentation/screens/payment/payment_method_screen.dart
+
+          flutter test test/keepz_iban_test.dart
 
       - name: Validate Google Maps keys
         script: |
@@ -96,7 +118,7 @@ workflows:
 
           /usr/libexec/PlistBuddy -c "Add :MiliGitCommit string $SOURCE_COMMIT" "$PLIST"
           /usr/libexec/PlistBuddy -c "Add :MiliShortCommit string $SHORT_COMMIT" "$PLIST"
-          /usr/libexec/PlistBuddy -c 'Add :MiliBuildNumber string 12' "$PLIST"
+          /usr/libexec/PlistBuddy -c 'Add :MiliBuildNumber string 13' "$PLIST"
 
           echo "Native Google Maps key and build fingerprint configured"
 
@@ -141,7 +163,7 @@ workflows:
           flutter build ios \
             --release \
             --no-codesign \
-            --build-number=12 \
+            --build-number=13 \
             --dart-define=GOOGLE_WEB_SERVICES_KEY="$GOOGLE_WEB_SERVICES_KEY" \
             --dart-define=MILI_GIT_COMMIT="$(git rev-parse HEAD)"
 
@@ -157,9 +179,9 @@ workflows:
             exit 1
           fi
 
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")" = '12'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")" = '13'
           test "$(/usr/libexec/PlistBuddy -c 'Print :MiliGitCommit' "$PLIST")" = "$(git rev-parse HEAD)"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :MiliBuildNumber' "$PLIST")" = '12'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :MiliBuildNumber' "$PLIST")" = '13'
           test -f "$FLUTTER_ASSETS/assets/language/ka.json"
           test -f "$FLUTTER_ASSETS/assets/language/en.json"
 
@@ -173,7 +195,7 @@ workflows:
         script: |
           set -e
           SHORT_COMMIT="$(git rev-parse --short=7 HEAD)"
-          ARTIFACT="mili-taxi-driver-${SHORT_COMMIT}-build12-unsigned.ipa"
+          ARTIFACT="mili-taxi-driver-${SHORT_COMMIT}-build13-unsigned.ipa"
 
           rm -rf build/ios/ipa
           mkdir -p build/ios/ipa/Payload
@@ -189,4 +211,4 @@ workflows:
           echo "Driver unsigned IPA created: $ARTIFACT"
 
     artifacts:
-      - build/ios/mili-taxi-driver-*-build12-unsigned.ipa
+      - build/ios/mili-taxi-driver-*-build13-unsigned.ipa
