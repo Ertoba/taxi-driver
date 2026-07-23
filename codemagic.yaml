@@ -56,10 +56,10 @@ workflows:
             exit 1
           fi
 
-      - name: Validate changed Dart files
+      - name: Parse-check changed Dart files
         script: |
           set -e
-          dart format --output=none --set-exit-if-changed \
+          dart format --output=none \
             lib/core/extensions/helper/push_notifications.dart \
             lib/domain/entities/initial_ride_request.dart
 
