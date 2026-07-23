@@ -30,14 +30,6 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     context.read<PaymentMethodCubits>().getPayoutType(context);
   }
 
-  String _copy(String english, String georgian) {
-    return Localizations.localeOf(context).languageCode == 'ka'
-        ? georgian
-        : english;
-  }
-
-  String _normalizedType(String? value) => value?.trim().toLowerCase() ?? '';
-
   void _onPaymentMethodSelected(PayoutTypes? method) {
     if (method == null) return;
 
@@ -76,11 +68,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
 
   String _getStatusText(PayoutTypes payoutType) {
     if (!_isMethodConfigured(payoutType)) {
-      return _copy('Not Configured', 'არ არის გამართული');
+      return 'Not Configured';
     }
-    return _isMethodActive(payoutType)
-        ? _copy('Active', 'აქტიური')
-        : _copy('Inactive', 'არააქტიური');
+    return _isMethodActive(payoutType) ? 'Active' : 'Inactive';
   }
 
   Color _getStatusColor(PayoutTypes payoutType) {
@@ -100,7 +90,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
   }
 
   IconData _getMethodIcon(String? methodName) {
-    switch (_normalizedType(methodName)) {
+    switch (methodName?.toLowerCase()) {
       case 'bank account':
         return Icons.account_balance;
       case 'keepz split receiver':
@@ -116,24 +106,20 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     }
   }
 
-  String _getMethodTitle(PayoutTypes payoutType) {
-    if (_normalizedType(payoutType.name) == 'keepz split receiver') {
-      return 'KEEPZ SPLIT — IBAN';
-    }
-    return (payoutType.name ?? 'Unknown').toUpperCase();
-  }
-
   String? _getMethodSubtitle(PayoutTypes payoutType) {
-    if (_normalizedType(payoutType.name) != 'keepz split receiver') {
+    if (payoutType.name?.toLowerCase() != 'keepz split receiver') {
       return null;
     }
 
-    return _getPaymentDetailsForType(payoutType)
-            ?.keepzReceiverIdentifierMasked ??
-        _copy(
-          'Save a Georgian IBAN for direct ride payouts',
-          'შეინახეთ ქართული IBAN პირდაპირი ჩარიცხვებისთვის',
-        );
+    final masked =
+        _getPaymentDetailsForType(payoutType)?.keepzReceiverIdentifierMasked;
+    if (masked != null && masked.isNotEmpty) {
+      return masked;
+    }
+
+    return Localizations.localeOf(context).languageCode == 'ka'
+        ? 'შეინახეთ ქართული IBAN პირდაპირი ჩარიცხვებისთვის'
+        : 'Save a Georgian IBAN for direct ride payouts';
   }
 
   void _navigateToAddEditScreen(PayoutTypes payoutType) {
@@ -141,44 +127,12 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     final existingDetails = _getPaymentDetailsForType(payoutType);
 
     goTo(AddPaymentDetails(
-      addedit: isConfigured ? 'Edit' : 'Add',
+      addedit: isConfigured ? "Edit" : "Add",
       id: payoutType.id ?? 0,
       type: payoutType.name ?? '',
       existingPayoutMethods: paymentMethodsList,
       paymentDetails: existingDetails,
     ));
-  }
-
-  Map<String, dynamic> _serializePayoutMethod(
-    PayoutMethod method,
-    int methodId,
-    int isActive,
-  ) {
-    final int parsedMethodId = method.id ?? 0;
-    final int methodIsActive =
-        parsedMethodId == methodId ? isActive : (method.details?.isActive ?? 0);
-    final type = _normalizedType(method.payoutMethod);
-
-    return {
-      'payout_method_id': parsedMethodId,
-      'is_active': methodIsActive,
-      if (type == 'bank account') ...{
-        'account_name': method.details?.accountName,
-        'bank_name': method.details?.bankName,
-        'branch_name': method.details?.branchName,
-        'account_number': method.details?.accountNumber,
-        'iban': method.details?.iban,
-        'swift_code': method.details?.swiftCode,
-      } else if (type == 'keepz split receiver') ...{
-        'account_name': method.details?.accountName,
-        'keepz_receiver_type': method.details?.keepzReceiverType ?? 'IBAN',
-        'keepz_receiver_identifier':
-            method.details?.keepzReceiverIdentifier,
-      } else ...{
-        'email': method.details?.email,
-        'note': method.details?.note,
-      },
-    };
   }
 
   Future<void> _updatePaymentMethodStatus(
@@ -187,20 +141,48 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     int isActive,
   ) async {
     try {
-      final List<Map<String, dynamic>> payoutMethodsList = paymentMethodsList
-          .map((method) => _serializePayoutMethod(method, methodId, isActive))
-          .toList();
+      final existingPayoutMethods = paymentMethodsList;
 
-      context.read<PaymentMethodCubits>().updateStatusPaymentMethod(
-        context,
-        map: {
-          'payout_methods': payoutMethodsList,
-          'active_payout_method_id': methodId,
-        },
-      );
+      List<Map<String, dynamic>> payoutMethodsList =
+          existingPayoutMethods.map((method) {
+        final int parsedMethodId = method.id ?? 0;
+        final int methodIsActive = parsedMethodId == methodId
+            ? isActive
+            : (method.details?.isActive ?? 0);
+        final methodType = method.payoutMethod?.trim().toLowerCase();
+        return {
+          "payout_method_id": parsedMethodId,
+          "is_active": methodIsActive,
+          if (methodType == "bank account") ...{
+            "account_name": method.details?.accountName,
+            "bank_name": method.details?.bankName,
+            "branch_name": method.details?.branchName,
+            "account_number": method.details?.accountNumber,
+            "iban": method.details?.iban,
+            "swift_code": method.details?.swiftCode,
+          } else if (methodType == "keepz split receiver") ...{
+            "account_name": method.details?.accountName,
+            "keepz_receiver_type":
+                method.details?.keepzReceiverType ?? "IBAN",
+            "keepz_receiver_identifier":
+                method.details?.keepzReceiverIdentifier,
+          } else ...{
+            "email": method.details?.email,
+            "note": method.details?.note,
+          }
+        };
+      }).toList();
+
+      var map = {
+        "payout_methods": payoutMethodsList,
+        "active_payout_method_id": methodId,
+      };
+      context
+          .read<PaymentMethodCubits>()
+          .updateStatusPaymentMethod(context, map: map);
     } catch (e) {
-      showErrorToastMessage('An error occurred: $e');
-      debugPrint('Exception: $e');
+      showErrorToastMessage("An error occurred: $e");
+      debugPrint("Exception: $e");
     }
   }
 
@@ -209,7 +191,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     return Scaffold(
       backgroundColor: notifires.getbgcolor,
       appBar: CustomAppBar(
-        title: 'Add/Edit Payout Method'.translate(context),
+        title: "Add/Edit Payout Method".translate(context),
         backgroundColor: notifires.getbgcolor,
         titleColor: notifires.getGrey1whiteColor,
       ),
@@ -226,10 +208,6 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
           }
           if (state is UpdatedPaymentMethodLoading) {
             Widgets.showLoader(context);
-          }
-          if (state is PaymentMethodFailure) {
-            Widgets.hideLoder(context);
-            showErrorToastMessage(state.error);
           }
         },
         builder: (context, state) {
@@ -273,7 +251,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       children: [
         const SizedBox(height: 6),
         Text(
-          'Add your preferred account to receive your payouts securely.'
+          "Add your preferred account to receive your payouts securely."
               .translate(context),
           style: regular2(context).copyWith(
             fontSize: 14,
@@ -290,7 +268,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       return Expanded(
         child: Center(
           child: Text(
-            'Data not found'.translate(context),
+            "Data not found".translate(context),
             style: regular2(context),
           ),
         ),
@@ -338,7 +316,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     required bool isActive,
     required IconData methodIcon,
   }) {
-    final subtitle = _getMethodSubtitle(payoutType);
+    final methodSubtitle = _getMethodSubtitle(payoutType);
 
     return Container(
       decoration: BoxDecoration(
@@ -368,6 +346,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
+                // Icon
                 Container(
                   width: 44,
                   height: 44,
@@ -382,21 +361,29 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
+
+                // Content
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _getMethodTitle(payoutType),
+                        payoutType.name?.toLowerCase() ==
+                                'keepz split receiver'
+                            ? 'KEEPZ SPLIT — IBAN'
+                            : (payoutType.name ?? 'Unknown')
+                                .toString()
+                                .toUpperCase(),
                         style: heading3Grey1(context).copyWith(
                           fontSize: 15,
+                          // fontWeight: FontWeight.w600,
                           color: notifires.getGrey1whiteColor,
                         ),
                       ),
-                      if (subtitle != null && subtitle.isNotEmpty) ...[
+                      if (methodSubtitle != null) ...[
                         const SizedBox(height: 3),
                         Text(
-                          subtitle,
+                          methodSubtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: regular2(context).copyWith(
@@ -409,9 +396,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: statusBackgroundColor,
                           borderRadius: BorderRadius.circular(6),
@@ -428,6 +413,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     ],
                   ),
                 ),
+
+                // Actions
                 Row(
                   children: [
                     if (isConfigured)
