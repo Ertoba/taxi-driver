@@ -1,0 +1,48 @@
+name: Driver Keepz Payout Checks
+
+on:
+  push:
+    branches:
+      - feature/keepz-split-driver-payout
+  pull_request:
+    paths:
+      - 'lib/core/utils/keepz_iban.dart'
+      - 'lib/domain/entities/get_payment_type.dart'
+      - 'lib/presentation/screens/payment/**'
+      - 'test/keepz_iban_test.dart'
+      - 'pubspec.yaml'
+      - '.github/workflows/keepz-payout-checks.yml'
+
+jobs:
+  flutter-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install packages
+        run: flutter pub get
+
+      - name: Check formatting
+        run: |
+          dart format --output=none --set-exit-if-changed \
+            lib/core/utils/keepz_iban.dart \
+            lib/domain/entities/get_payment_type.dart \
+            lib/presentation/screens/payment/add_payment_method_screen.dart \
+            lib/presentation/screens/payment/payment_method_screen.dart \
+            test/keepz_iban_test.dart
+
+      - name: Analyze Keepz payout files
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib/core/utils/keepz_iban.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib/domain/entities/get_payment_type.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib/presentation/screens/payment/add_payment_method_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib/presentation/screens/payment/payment_method_screen.dart
+
+      - name: Run Keepz IBAN tests
+        run: flutter test test/keepz_iban_test.dart
