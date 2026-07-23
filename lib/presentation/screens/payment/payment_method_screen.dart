@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ride_on_driver/core/utils/translate.dart';
@@ -20,7 +18,6 @@ class PaymentMethodsScreen extends StatefulWidget {
 }
 
 class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
-  PayoutTypes? _selectedPaymentMethod;
   List<PayoutMethod> paymentMethodsList = [];
   List<PayoutTypes> payOutList = [];
 
@@ -30,69 +27,49 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     context.read<PaymentMethodCubits>().getPayoutType(context);
   }
 
-  void _onPaymentMethodSelected(PayoutTypes? method) {
-    if (method == null) return;
-
-    setState(() {
-      _selectedPaymentMethod = method;
-    });
+  String _copy(String english, String georgian) {
+    return Localizations.localeOf(context).languageCode == 'ka'
+        ? georgian
+        : english;
   }
 
-  PaymentDetails? _getPaymentDetailsForType(PayoutTypes payoutType) {
-    try {
-      final existingMethod = paymentMethodsList.firstWhere(
-        (method) => method.id == payoutType.id,
-        orElse: () => PayoutMethod(id: 0, payoutMethod: 'None'),
-      );
+  String _normalizedType(String? value) => value?.trim().toLowerCase() ?? '';
 
-      return existingMethod.id != 0 ? existingMethod.details : null;
-    } catch (e) {
-      return null;
+  PaymentDetails? _detailsFor(PayoutTypes payoutType) {
+    for (final method in paymentMethodsList) {
+      if (method.id == payoutType.id) return method.details;
     }
+    return null;
   }
 
-  bool _isMethodConfigured(PayoutTypes payoutType) {
+  bool _isConfigured(PayoutTypes payoutType) {
     return paymentMethodsList.any((method) => method.id == payoutType.id);
   }
 
-  bool _isMethodActive(PayoutTypes payoutType) {
-    try {
-      final method = paymentMethodsList.firstWhere(
-        (method) => method.id == payoutType.id,
-      );
-      return method.details?.isActive == 1;
-    } catch (e) {
-      return false;
-    }
+  bool _isActive(PayoutTypes payoutType) {
+    return _detailsFor(payoutType)?.isActive == 1;
   }
 
-  String _getStatusText(PayoutTypes payoutType) {
-    if (!_isMethodConfigured(payoutType)) {
-      return 'Not Configured';
+  String _statusText(PayoutTypes payoutType) {
+    if (!_isConfigured(payoutType)) {
+      return _copy('Not configured', 'არ არის გამართული');
     }
-    return _isMethodActive(payoutType) ? 'Active' : 'Inactive';
+    return _isActive(payoutType)
+        ? _copy('Active', 'აქტიური')
+        : _copy('Inactive', 'არააქტიური');
   }
 
-  Color _getStatusColor(PayoutTypes payoutType) {
-    if (!_isMethodConfigured(payoutType)) {
-      return Colors.grey;
-    }
-    return _isMethodActive(payoutType) ? Colors.green : Colors.red;
+  Color _statusColor(PayoutTypes payoutType) {
+    if (!_isConfigured(payoutType)) return Colors.grey;
+    return _isActive(payoutType) ? Colors.green : Colors.red;
   }
 
-  Color _getStatusBackgroundColor(PayoutTypes payoutType) {
-    if (!_isMethodConfigured(payoutType)) {
-      return Colors.grey.withValues(alpha: 0.1);
-    }
-    return _isMethodActive(payoutType)
-        ? Colors.green.withValues(alpha: 0.1)
-        : Colors.red.withValues(alpha: 0.1);
-  }
-
-  IconData _getMethodIcon(String? methodName) {
-    switch (methodName?.toLowerCase()) {
+  IconData _methodIcon(String? methodName) {
+    switch (_normalizedType(methodName)) {
       case 'bank account':
         return Icons.account_balance;
+      case 'keepz split receiver':
+        return Icons.account_balance_wallet_outlined;
       case 'paypal':
         return Icons.payment;
       case 'stripe':
@@ -100,65 +77,99 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       case 'cash':
         return Icons.money;
       default:
-        return Icons.payment;
+        return Icons.payments_outlined;
     }
   }
 
-  void _navigateToAddEditScreen(PayoutTypes payoutType) {
-    final isConfigured = _isMethodConfigured(payoutType);
-    final existingDetails = _getPaymentDetailsForType(payoutType);
+  String _methodTitle(String? methodName) {
+    if (_normalizedType(methodName) == 'keepz split receiver') {
+      return _copy('KEEPZ SPLIT — IBAN', 'KEEPZ SPLIT — IBAN');
+    }
+    return (methodName ?? 'Unknown').toUpperCase();
+  }
 
+  String? _methodSubtitle(PayoutTypes payoutType) {
+    if (_normalizedType(payoutType.name) != 'keepz split receiver') {
+      return null;
+    }
+
+    final details = _detailsFor(payoutType);
+    return details?.keepzReceiverIdentifierMasked ??
+        _copy(
+          'Save a Georgian IBAN for direct ride payouts',
+          'შეინახეთ ქართული IBAN პირდაპირი ჩარიცხვებისთვის',
+        );
+  }
+
+  void _openMethod(PayoutTypes payoutType) {
     goTo(AddPaymentDetails(
-      addedit: isConfigured ? "Edit" : "Add",
+      addedit: _isConfigured(payoutType) ? 'Edit' : 'Add',
       id: payoutType.id ?? 0,
       type: payoutType.name ?? '',
       existingPayoutMethods: paymentMethodsList,
-      paymentDetails: existingDetails,
+      paymentDetails: _detailsFor(payoutType),
     ));
   }
 
-  Future<void> _updatePaymentMethodStatus(
-    BuildContext context,
-    int methodId,
-    int isActive,
-  ) async {
-    try {
-      final existingPayoutMethods = paymentMethodsList;
+  Map<String, dynamic> _serializeMethod(
+    PayoutMethod method, {
+    int? overrideMethodId,
+    int? overrideActive,
+  }) {
+    final details = method.details;
+    final type = _normalizedType(method.payoutMethod);
+    final methodId = method.id ?? 0;
+    final payload = <String, dynamic>{
+      'payout_method_id': methodId,
+      'is_active': methodId == overrideMethodId
+          ? overrideActive
+          : (details?.isActive ?? 0),
+    };
 
-      List<Map<String, dynamic>> payoutMethodsList =
-          existingPayoutMethods.map((method) {
-        final int parsedMethodId = method.id ?? 0;
-        final int methodIsActive = parsedMethodId == methodId
-            ? isActive
-            : (method.details?.isActive ?? 0);
-        return {
-          "payout_method_id": parsedMethodId,
-          "is_active": methodIsActive,
-          if (method.payoutMethod?.toLowerCase() == "bank account") ...{
-            "account_name": method.details?.accountName,
-            "bank_name": method.details?.bankName,
-            "branch_name": method.details?.branchName,
-            "account_number": method.details?.accountNumber,
-            "iban": method.details?.iban,
-            "swift_code": method.details?.swiftCode,
-          } else ...{
-            "email": method.details?.email,
-            "note": method.details?.note,
-          }
-        };
-      }).toList();
-
-      var map = {
-        "payout_methods": payoutMethodsList,
-        "active_payout_method_id": methodId,
-      };
-      context
-          .read<PaymentMethodCubits>()
-          .updateStatusPaymentMethod(context, map: map);
-    } catch (e) {
-      showErrorToastMessage("An error occurred: $e");
-      debugPrint("Exception: $e");
+    if (type == 'bank account') {
+      payload.addAll({
+        'account_name': details?.accountName,
+        'bank_name': details?.bankName,
+        'branch_name': details?.branchName,
+        'account_number': details?.accountNumber,
+        'iban': details?.iban,
+        'swift_code': details?.swiftCode,
+      });
+    } else if (type == 'keepz split receiver') {
+      payload.addAll({
+        'account_name': details?.accountName,
+        'keepz_receiver_type': details?.keepzReceiverType ?? 'IBAN',
+        'keepz_receiver_identifier': details?.keepzReceiverIdentifier,
+      });
+    } else {
+      payload.addAll({
+        'email': details?.email,
+        'note': details?.note,
+      });
     }
+
+    return payload;
+  }
+
+  Future<void> _updateStatus(PayoutTypes payoutType, bool isActive) async {
+    final methodId = payoutType.id;
+    if (methodId == null || !_isConfigured(payoutType)) return;
+
+    final payload = paymentMethodsList
+        .map((method) => _serializeMethod(
+              method,
+              overrideMethodId: methodId,
+              overrideActive: isActive ? 1 : 0,
+            ))
+        .toList();
+
+    context.read<PaymentMethodCubits>().updateStatusPaymentMethod(
+      context,
+      map: {
+        'payout_methods': payload,
+        'active_payout_method_id': methodId,
+      },
+    );
   }
 
   @override
@@ -166,23 +177,28 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     return Scaffold(
       backgroundColor: notifires.getbgcolor,
       appBar: CustomAppBar(
-        title: "Add/Edit Payout Method".translate(context),
+        title: 'Add/Edit Payout Method'.translate(context),
         backgroundColor: notifires.getbgcolor,
         titleColor: notifires.getGrey1whiteColor,
       ),
       body: BlocConsumer<PaymentMethodCubits, PaymentMethodState>(
         listener: (context, state) {
           if (state is PaymentMethodSuccess) {
-            paymentMethodsList = state.model.data?.payoutMethods ?? [];
+            setState(() {
+              paymentMethodsList = state.model.data?.payoutMethods ?? [];
+            });
             context.read<PaymentMethodCubits>().clear();
-          }
-          if (state is UpdatePaymentMethodSuccess) {
+          } else if (state is UpdatePaymentMethodSuccess) {
             Widgets.hideLoder(context);
-            paymentMethodsList = state.model.data?.payoutMethods ?? [];
+            setState(() {
+              paymentMethodsList = state.model.data?.payoutMethods ?? [];
+            });
             context.read<PaymentMethodCubits>().clear();
-          }
-          if (state is UpdatedPaymentMethodLoading) {
+          } else if (state is UpdatedPaymentMethodLoading) {
             Widgets.showLoader(context);
+          } else if (state is PaymentMethodFailure) {
+            Widgets.hideLoder(context);
+            showErrorToastMessage(state.error);
           }
         },
         builder: (context, state) {
@@ -196,22 +212,26 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
 
           if (state is PayoutTypeSuccess) {
             payOutList = state.model.data?.payoutTypes ?? [];
-            if (_selectedPaymentMethod == null && payOutList.isNotEmpty) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _onPaymentMethodSelected(payOutList.first);
-              });
-            }
           }
 
           return Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeaderSection(),
-                const SizedBox(height: 24),
-                _buildPaymentMethodsList(),
+                Text(
+                  _copy(
+                    'Add your preferred account to receive payouts securely.',
+                    'დაამატეთ სასურველი ანგარიში ჩარიცხვების უსაფრთხოდ მისაღებად.',
+                  ),
+                  style: regular2(context).copyWith(
+                    fontSize: 14,
+                    color: notifires.getGrey1whiteColor.withValues(alpha: 0.7),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Expanded(child: _buildMethods()),
               ],
             ),
           );
@@ -220,207 +240,137 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     );
   }
 
-  Widget _buildHeaderSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 6),
-        Text(
-          "Add your preferred account to receive your payouts securely."
-              .translate(context),
-          style: regular2(context).copyWith(
-            fontSize: 14,
-            color: notifires.getGrey1whiteColor.withValues(alpha: 0.7),
-            height: 1.4,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPaymentMethodsList() {
+  Widget _buildMethods() {
     if (payOutList.isEmpty) {
-      return Expanded(
-        child: Center(
-          child: Text(
-            "Data not found".translate(context),
-            style: regular2(context),
-          ),
-        ),
+      return Center(
+        child: Text('Data not found'.translate(context), style: regular2(context)),
       );
     }
 
-    return Expanded(
-      child: ListView.separated(
-        itemCount: payOutList.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final payoutType = payOutList[index];
+    return ListView.separated(
+      itemCount: payOutList.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final payoutType = payOutList[index];
+        if (payoutType.id == null || payoutType.name == null) {
+          return const SizedBox.shrink();
+        }
 
-          if (payoutType.id == null || payoutType.name == null) {
-            return const SizedBox.shrink();
-          }
+        final configured = _isConfigured(payoutType);
+        final active = _isActive(payoutType);
+        final statusColor = _statusColor(payoutType);
+        final subtitle = _methodSubtitle(payoutType);
 
-          final isConfigured = _isMethodConfigured(payoutType);
-          final statusText = _getStatusText(payoutType);
-          final statusColor = _getStatusColor(payoutType);
-          final statusBackgroundColor = _getStatusBackgroundColor(payoutType);
-          final isActive = _isMethodActive(payoutType);
-          final methodIcon = _getMethodIcon(payoutType.name);
-
-          return _buildPaymentMethodCard(
-            payoutType: payoutType,
-            isConfigured: isConfigured,
-            statusText: statusText,
-            statusColor: statusColor,
-            statusBackgroundColor: statusBackgroundColor,
-            isActive: isActive,
-            methodIcon: methodIcon,
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPaymentMethodCard({
-    required PayoutTypes payoutType,
-    required bool isConfigured,
-    required String statusText,
-    required Color statusColor,
-    required Color statusBackgroundColor,
-    required bool isActive,
-    required IconData methodIcon,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: notifires.getbgcolor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: notifires.getGrey1whiteColor.withValues(alpha: 0.3),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        return Container(
+          decoration: BoxDecoration(
+            color: notifires.getbgcolor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: notifires.getGrey1whiteColor.withValues(alpha: 0.25),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            _onPaymentMethodSelected(payoutType);
-            _navigateToAddEditScreen(payoutType);
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Icon
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: themeColor.withValues(alpha: .4),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    methodIcon,
-                    color: blackColor,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        (payoutType.name ?? 'Unknown').toString().toUpperCase(),
-                        style: heading3Grey1(context).copyWith(
-                          fontSize: 15,
-                          // fontWeight: FontWeight.w600,
-                          color: notifires.getGrey1whiteColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: statusBackgroundColor,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          statusText,
-                          style: regular2(context).copyWith(
-                            fontSize: 10,
-                            color: statusColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Actions
-                Row(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _openMethod(payoutType),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   children: [
-                    if (isConfigured)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: isActive,
-                            onChanged: (bool newValue) async {
-                              await _updatePaymentMethodStatus(
-                                context,
-                                payoutType.id ?? 0,
-                                newValue ? 1 : 0,
-                              );
-                            },
-                            activeThumbColor: Colors.green,
-                            inactiveThumbColor: Colors.red,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
-                      ),
                     Container(
-                      width: 36,
-                      height: 36,
+                      width: 44,
+                      height: 44,
                       decoration: BoxDecoration(
-                        color: themeColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
+                        color: themeColor.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: IconButton(
-                        onPressed: () {
-                          _onPaymentMethodSelected(payoutType);
-                          _navigateToAddEditScreen(payoutType);
-                        },
-                        icon: Icon(
-                          isConfigured ? Icons.edit_outlined : Icons.add,
-                          size: 18,
-                          color: blackColor,
+                      child: Icon(
+                        _methodIcon(payoutType.name),
+                        color: blackColor,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _methodTitle(payoutType.name),
+                            style: heading3Grey1(context).copyWith(
+                              fontSize: 15,
+                              color: notifires.getGrey1whiteColor,
+                            ),
+                          ),
+                          if (subtitle != null && subtitle.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: regular2(context).copyWith(
+                                fontSize: 11,
+                                color: notifires.getGrey1whiteColor
+                                    .withValues(alpha: 0.65),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              _statusText(payoutType),
+                              style: regular2(context).copyWith(
+                                fontSize: 10,
+                                color: statusColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (configured)
+                      Transform.scale(
+                        scale: 0.8,
+                        child: Switch(
+                          value: active,
+                          onChanged: (value) => _updateStatus(payoutType, value),
+                          activeThumbColor: Colors.green,
+                          inactiveThumbColor: Colors.red,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                         ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                      ),
+                    IconButton(
+                      onPressed: () => _openMethod(payoutType),
+                      icon: Icon(
+                        configured ? Icons.edit_outlined : Icons.add,
+                        color: blackColor,
                       ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
