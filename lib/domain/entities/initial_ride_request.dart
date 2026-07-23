@@ -1,3 +1,13 @@
+Map<String, dynamic> _stringKeyedMap(Object? value) {
+  if (value is! Map) return <String, dynamic>{};
+
+  return value.map(
+    (key, mapValue) => MapEntry(key.toString(), mapValue),
+  );
+}
+
+String _stringValue(Object? value) => value?.toString().trim() ?? '';
+
 class InitialRideRequest {
   final String rideId;
   final String pickupLocation;
@@ -22,22 +32,22 @@ class InitialRideRequest {
     required this.status,
     required this.travelDistance,
     required this.travelTime,
-    required this.playerId ,
+    required this.playerId,
   });
 
   factory InitialRideRequest.fromJson(Map<String, dynamic> json) {
     return InitialRideRequest(
-      rideId: json['rideId'] as String? ?? '',
-      pickupLocation: json['pickupLocation'] as String? ?? '',
-      dropoffLocation: json['dropoffLocation'] as String? ?? '',
-      userId: json['userId'] as String? ?? '',
-      customer:Customer.fromJson(json['customer'] as Map<String, dynamic>? ?? {}),
-      parcalData:ParcalData.fromJson(json['parcelData'] as Map<String, dynamic>? ?? {}),
-      travelCharges: json['travelCharges'] as String? ?? '',
-      status: json['status'] as String? ?? '',
-      travelDistance: json['travelDistance'] as String? ?? '',
-      travelTime: json['travelTime'] as String? ?? '',
-      playerId: json['playerId'] as String? ?? '',
+      rideId: _stringValue(json['rideId']),
+      pickupLocation: _stringValue(json['pickupLocation']),
+      dropoffLocation: _stringValue(json['dropoffLocation']),
+      userId: _stringValue(json['userId']),
+      customer: Customer.fromJson(_stringKeyedMap(json['customer'])),
+      parcalData: ParcalData.fromJson(_stringKeyedMap(json['parcelData'])),
+      travelCharges: _stringValue(json['travelCharges']),
+      status: _stringValue(json['status']),
+      travelDistance: _stringValue(json['travelDistance']),
+      travelTime: _stringValue(json['travelTime']),
+      playerId: _stringValue(json['playerId']),
     );
   }
 
@@ -71,11 +81,13 @@ class Customer {
   });
 
   factory Customer.fromJson(Map<String, dynamic> json) {
+    final userPhoto = _stringValue(json['userPhoto']);
+
     return Customer(
-      userName: json['userName'] as String? ?? '',
-      userPhone: json['userPhone'] as String? ?? '',
-      userPhoto: json['userPhoto'] as String?,
-      userRating: json['userRating'] as String? ?? '',
+      userName: _stringValue(json['userName']),
+      userPhone: _stringValue(json['userPhone']),
+      userPhoto: userPhoto.isEmpty ? null : userPhoto,
+      userRating: _stringValue(json['userRating']),
     );
   }
 
@@ -98,22 +110,19 @@ class ParcalData {
 
   ParcalData({
     this.name,
-      this.weight,
+    this.weight,
     this.reciverName,
-     this.reciverNumber,
-     this.instruction,
+    this.reciverNumber,
+    this.instruction,
   });
 
   factory ParcalData.fromJson(Map<String, dynamic> json) {
     return ParcalData(
-      name: json['name'] as String? ?? '',
-      weight: json['weight'] as String? ?? '',
-      reciverName: json['receiverName'] as String?,
-      reciverNumber: json['receiverPhone'] as String?,
-      instruction: json['pickupInstructions'] as String? ?? '',
+      name: _stringValue(json['name']),
+      weight: _stringValue(json['weight']),
+      reciverName: _stringValue(json['receiverName']),
+      reciverNumber: _stringValue(json['receiverPhone']),
+      instruction: _stringValue(json['pickupInstructions']),
     );
   }
-
-  
-  
 }
