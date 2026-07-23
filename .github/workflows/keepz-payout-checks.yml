@@ -1,11 +1,13 @@
-name: Driver Keepz Payout Checks
+name: Driver Keepz and OTP Checks
 
 on:
   push:
     branches:
       - main
       - feature/keepz-split-driver-payout
+      - fix/pickup-otp-delivery-latency
     paths:
+      - 'lib/core/extensions/helper/push_notifications.dart'
       - 'lib/core/utils/keepz_iban.dart'
       - 'lib/domain/entities/get_payment_type.dart'
       - 'lib/presentation/screens/payment/**'
@@ -15,6 +17,7 @@ on:
       - '.github/workflows/keepz-payout-checks.yml'
   pull_request:
     paths:
+      - 'lib/core/extensions/helper/push_notifications.dart'
       - 'lib/core/utils/keepz_iban.dart'
       - 'lib/domain/entities/get_payment_type.dart'
       - 'lib/presentation/screens/payment/**'
@@ -41,18 +44,26 @@ jobs:
       - name: Parse and format targeted Dart files
         run: |
           dart format --output=none \
+            lib/core/extensions/helper/push_notifications.dart \
             lib/core/utils/keepz_iban.dart \
             lib/domain/entities/get_payment_type.dart \
             lib/presentation/screens/payment/add_payment_method_screen.dart \
             lib/presentation/screens/payment/payment_method_screen.dart \
             test/keepz_iban_test.dart
 
-      - name: Analyze Keepz payout files
+      - name: Analyze Driver OTP and payout files
         run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib/core/extensions/helper/push_notifications.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings lib/core/utils/keepz_iban.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings lib/domain/entities/get_payment_type.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings lib/presentation/screens/payment/add_payment_method_screen.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings lib/presentation/screens/payment/payment_method_screen.dart
+
+      - name: Verify prompt OTP path
+        run: |
+          grep -q '_readyPickupOtpRide' lib/core/extensions/helper/push_notifications.dart
+          grep -q 'unawaited(_requestRideAcceptedNotification' lib/core/extensions/helper/push_notifications.dart
+          grep -q 'elapsedMilliseconds' lib/core/extensions/helper/push_notifications.dart
 
       - name: Run Keepz IBAN tests
         run: flutter test test/keepz_iban_test.dart
