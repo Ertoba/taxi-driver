@@ -37,13 +37,16 @@ workflows:
       - name: Validate Driver source
         script: |
           set -e
-          grep -q 'version: 1.0.6+13' pubspec.yaml
+          grep -q 'version: 1.0.6+14' pubspec.yaml
           grep -q 'google_maps_flutter_ios_sdk10: ^2.18.5' pubspec.yaml
           grep -q 'GMSServices.provideAPIKey' ios/Runner/AppDelegate.swift
           grep -q "sendPickupOtp = 'send-pickup-otp'" lib/core/services/config.dart
           grep -q 'Config.sendPickupOtp' lib/core/extensions/helper/push_notifications.dart
           grep -q 'Waiting for Rider pickup OTP data' lib/core/extensions/helper/push_notifications.dart
           grep -q '_waitForRidePickupOtp' lib/core/extensions/helper/push_notifications.dart
+          grep -q '_readyPickupOtpRide' lib/core/extensions/helper/push_notifications.dart
+          grep -q 'unawaited(_requestRideAcceptedNotification' lib/core/extensions/helper/push_notifications.dart
+          grep -q 'elapsedMilliseconds' lib/core/extensions/helper/push_notifications.dart
           grep -q '_stringValue' lib/domain/entities/initial_ride_request.dart
           grep -q 'keepzReceiverIdentifier' lib/domain/entities/get_payment_type.dart
           grep -q 'keepz_receiver_identifier' lib/presentation/screens/payment/add_payment_method_screen.dart
@@ -53,7 +56,7 @@ workflows:
           test -f assets/language/ka.json
           test -f assets/language/en.json
           test -f test/keepz_iban_test.dart
-          echo "Driver Maps, pickup OTP, Keepz IBAN and localization source checks passed"
+          echo "Driver Maps, prompt pickup OTP, Keepz IBAN and localization source checks passed"
 
       - name: Disable Swift Package Manager
         script: |
@@ -83,6 +86,8 @@ workflows:
             lib/presentation/screens/payment/payment_method_screen.dart \
             test/keepz_iban_test.dart
 
+          flutter analyze --no-fatal-infos --no-fatal-warnings \
+            lib/core/extensions/helper/push_notifications.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings \
             lib/core/utils/keepz_iban.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings \
@@ -127,7 +132,7 @@ workflows:
 
           /usr/libexec/PlistBuddy -c "Add :MiliGitCommit string $SOURCE_COMMIT" "$PLIST"
           /usr/libexec/PlistBuddy -c "Add :MiliShortCommit string $SHORT_COMMIT" "$PLIST"
-          /usr/libexec/PlistBuddy -c 'Add :MiliBuildNumber string 13' "$PLIST"
+          /usr/libexec/PlistBuddy -c 'Add :MiliBuildNumber string 14' "$PLIST"
 
           echo "Native Google Maps key and build fingerprint configured"
 
@@ -172,7 +177,7 @@ workflows:
           flutter build ios \
             --release \
             --no-codesign \
-            --build-number=13 \
+            --build-number=14 \
             --dart-define=GOOGLE_WEB_SERVICES_KEY="$GOOGLE_WEB_SERVICES_KEY" \
             --dart-define=MILI_GIT_COMMIT="$(git rev-parse HEAD)"
 
@@ -188,9 +193,9 @@ workflows:
             exit 1
           fi
 
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")" = '13'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")" = '14'
           test "$(/usr/libexec/PlistBuddy -c 'Print :MiliGitCommit' "$PLIST")" = "$(git rev-parse HEAD)"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :MiliBuildNumber' "$PLIST")" = '13'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :MiliBuildNumber' "$PLIST")" = '14'
           test -f "$FLUTTER_ASSETS/assets/language/ka.json"
           test -f "$FLUTTER_ASSETS/assets/language/en.json"
 
@@ -204,7 +209,7 @@ workflows:
         script: |
           set -e
           SHORT_COMMIT="$(git rev-parse --short=7 HEAD)"
-          ARTIFACT="mili-taxi-driver-${SHORT_COMMIT}-build13-unsigned.ipa"
+          ARTIFACT="mili-taxi-driver-${SHORT_COMMIT}-build14-unsigned.ipa"
 
           rm -rf build/ios/ipa
           mkdir -p build/ios/ipa/Payload
@@ -220,4 +225,4 @@ workflows:
           echo "Driver unsigned IPA created: $ARTIFACT"
 
     artifacts:
-      - build/ios/mili-taxi-driver-*-build13-unsigned.ipa
+      - build/ios/mili-taxi-driver-*-build14-unsigned.ipa
