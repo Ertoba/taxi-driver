@@ -94,6 +94,9 @@ class PaymentDetails {
   final String? accountNumber;
   final String? iban;
   final String? swiftCode;
+  final String? keepzReceiverType;
+  final String? keepzReceiverIdentifier;
+  final String? keepzReceiverIdentifierMasked;
   final String? createdAt;
   final String? updatedAt;
 
@@ -109,6 +112,9 @@ class PaymentDetails {
     this.accountNumber,
     this.iban,
     this.swiftCode,
+    this.keepzReceiverType,
+    this.keepzReceiverIdentifier,
+    this.keepzReceiverIdentifierMasked,
     this.createdAt,
     this.updatedAt,
   });
@@ -126,6 +132,11 @@ class PaymentDetails {
       accountNumber: json['account_number'] as String?,
       iban: json['iban'] as String?,
       swiftCode: json['swift_code'] as String?,
+      keepzReceiverType: json['keepz_receiver_type'] as String?,
+      keepzReceiverIdentifier:
+          json['keepz_receiver_identifier'] as String?,
+      keepzReceiverIdentifierMasked:
+          json['keepz_receiver_identifier_masked'] as String?,
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
     );
@@ -143,6 +154,9 @@ class PaymentDetails {
       'account_number': accountNumber,
       'iban': iban,
       'swift_code': swiftCode,
+      'keepz_receiver_type': keepzReceiverType,
+      'keepz_receiver_identifier': keepzReceiverIdentifier,
+      'keepz_receiver_identifier_masked': keepzReceiverIdentifierMasked,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };

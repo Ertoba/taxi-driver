@@ -93,6 +93,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     switch (methodName?.toLowerCase()) {
       case 'bank account':
         return Icons.account_balance;
+      case 'keepz split receiver':
+        return Icons.account_balance_wallet_outlined;
       case 'paypal':
         return Icons.payment;
       case 'stripe':
@@ -102,6 +104,22 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       default:
         return Icons.payment;
     }
+  }
+
+  String? _getMethodSubtitle(PayoutTypes payoutType) {
+    if (payoutType.name?.toLowerCase() != 'keepz split receiver') {
+      return null;
+    }
+
+    final masked =
+        _getPaymentDetailsForType(payoutType)?.keepzReceiverIdentifierMasked;
+    if (masked != null && masked.isNotEmpty) {
+      return masked;
+    }
+
+    return Localizations.localeOf(context).languageCode == 'ka'
+        ? 'შეინახეთ ქართული IBAN პირდაპირი ჩარიცხვებისთვის'
+        : 'Save a Georgian IBAN for direct ride payouts';
   }
 
   void _navigateToAddEditScreen(PayoutTypes payoutType) {
@@ -131,16 +149,23 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
         final int methodIsActive = parsedMethodId == methodId
             ? isActive
             : (method.details?.isActive ?? 0);
+        final methodType = method.payoutMethod?.trim().toLowerCase();
         return {
           "payout_method_id": parsedMethodId,
           "is_active": methodIsActive,
-          if (method.payoutMethod?.toLowerCase() == "bank account") ...{
+          if (methodType == "bank account") ...{
             "account_name": method.details?.accountName,
             "bank_name": method.details?.bankName,
             "branch_name": method.details?.branchName,
             "account_number": method.details?.accountNumber,
             "iban": method.details?.iban,
             "swift_code": method.details?.swiftCode,
+          } else if (methodType == "keepz split receiver") ...{
+            "account_name": method.details?.accountName,
+            "keepz_receiver_type":
+                method.details?.keepzReceiverType ?? "IBAN",
+            "keepz_receiver_identifier":
+                method.details?.keepzReceiverIdentifier,
           } else ...{
             "email": method.details?.email,
             "note": method.details?.note,
@@ -291,6 +316,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     required bool isActive,
     required IconData methodIcon,
   }) {
+    final methodSubtitle = _getMethodSubtitle(payoutType);
+
     return Container(
       decoration: BoxDecoration(
         color: notifires.getbgcolor,
@@ -341,13 +368,31 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        (payoutType.name ?? 'Unknown').toString().toUpperCase(),
+                        payoutType.name?.toLowerCase() ==
+                                'keepz split receiver'
+                            ? 'KEEPZ SPLIT — IBAN'
+                            : (payoutType.name ?? 'Unknown')
+                                .toString()
+                                .toUpperCase(),
                         style: heading3Grey1(context).copyWith(
                           fontSize: 15,
                           // fontWeight: FontWeight.w600,
                           color: notifires.getGrey1whiteColor,
                         ),
                       ),
+                      if (methodSubtitle != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          methodSubtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: regular2(context).copyWith(
+                            fontSize: 11,
+                            color: notifires.getGrey1whiteColor
+                                .withValues(alpha: 0.65),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(
