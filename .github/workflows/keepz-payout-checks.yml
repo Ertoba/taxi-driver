@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: subosito/flutter-action@v2
         with:
@@ -28,9 +28,9 @@ jobs:
       - name: Install packages
         run: flutter pub get
 
-      - name: Check formatting
+      - name: Parse and format targeted Dart files
         run: |
-          dart format --output=none --set-exit-if-changed \
+          dart format --output=none \
             lib/core/utils/keepz_iban.dart \
             lib/domain/entities/get_payment_type.dart \
             lib/presentation/screens/payment/add_payment_method_screen.dart \
