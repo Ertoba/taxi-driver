@@ -11,7 +11,8 @@ String maskGeorgianIban(String value) {
   final normalized = normalizeGeorgianIban(value);
   if (normalized.length < 8) return normalized;
 
+  final hidden = List.filled(normalized.length - 8, '*').join();
   return '${normalized.substring(0, 4)}'
-      '${'*' * (normalized.length - 8)}'
+      '$hidden'
       '${normalized.substring(normalized.length - 4)}';
 }
