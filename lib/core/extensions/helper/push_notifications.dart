@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import '../../services/config.dart';
@@ -174,7 +175,7 @@ Future<void> getFCMToken() async {
 
       await httpPost(
         Config.fcmUpdate,
-        {"fcm": fcmToken, "player_id": oneSignalPlayerId ?? ""},
+        {'fcm': fcmToken, 'player_id': oneSignalPlayerId ?? ''},
         context: navigatorKey.currentContext!,
       );
     }
@@ -183,7 +184,7 @@ Future<void> getFCMToken() async {
 }
 
 Future<void> addTagWithKey(String token) async {
-  await OneSignal.User.addTagWithKey("FCMToken", token);
+  await OneSignal.User.addTagWithKey('FCMToken', token);
 }
 
 Future<void> fetchPlayerId() async {
@@ -223,7 +224,7 @@ Future<void> showNotification(context) async {
 
 void handleNotificationClick(String? route, var data) {
   if (token.isEmpty) {
-    showErrorToastMessage("Please Login first");
+    showErrorToastMessage('Please Login first');
 
     return;
   }
@@ -256,7 +257,7 @@ Future<void> initializeNotifications() async {
         try {
           final Map<String, dynamic> data =
               jsonDecode(notificationResponse.payload!);
-          handleNotificationClick(data["route"], data);
+          handleNotificationClick(data['route'], data);
           // ignore: empty_catches
         } catch (e) {}
       }
@@ -285,15 +286,44 @@ bool _isTerminalRideStatus(String status) {
       status == 'completed';
 }
 
+Map<String, dynamic>? _readyPickupOtpRide(Object? value) {
+  final rideData = _asStringMap(value);
+  if (rideData == null) return null;
+
+  final status = _normalizedString(rideData['status']).toLowerCase();
+  if (_isTerminalRideStatus(status)) return null;
+
+  final customerData = _asStringMap(rideData['customer']);
+  final pickupOtp = _pickupOtpFromRide(rideData);
+  final riderPhone = _normalizedString(customerData?['userPhone']);
+
+  return pickupOtp.isNotEmpty && riderPhone.isNotEmpty ? rideData : null;
+}
+
 Future<Map<String, dynamic>?> _waitForRidePickupOtp(
   String rideId, {
-  Duration timeout = const Duration(seconds: 60),
+  Duration timeout = const Duration(seconds: 30),
 }) async {
-  final completer = Completer<Map<String, dynamic>?>();
   final rideRef = FirebaseDatabase.instance
       .ref()
       .child('ride_requests')
       .child(rideId);
+
+  try {
+    final initialSnapshot =
+        await rideRef.get().timeout(const Duration(seconds: 2));
+    final initialRide = _readyPickupOtpRide(initialSnapshot.value);
+    if (initialRide != null) return initialRide;
+
+    final initialData = _asStringMap(initialSnapshot.value);
+    final initialStatus =
+        _normalizedString(initialData?['status']).toLowerCase();
+    if (_isTerminalRideStatus(initialStatus)) return null;
+  } catch (_) {
+    // Continue with the realtime listener below.
+  }
+
+  final completer = Completer<Map<String, dynamic>?>();
   StreamSubscription<DatabaseEvent>? subscription;
   Timer? timeoutTimer;
 
@@ -315,12 +345,9 @@ Future<Map<String, dynamic>?> _waitForRidePickupOtp(
           return;
         }
 
-        final customerData = _asStringMap(rideData['customer']);
-        final pickupOtp = _pickupOtpFromRide(rideData);
-        final riderPhone = _normalizedString(customerData?['userPhone']);
-
-        if (pickupOtp.isNotEmpty && riderPhone.isNotEmpty) {
-          complete(rideData);
+        final readyRide = _readyPickupOtpRide(rideData);
+        if (readyRide != null) {
+          complete(readyRide);
         }
       },
       onError: (Object error) {
@@ -337,25 +364,35 @@ Future<Map<String, dynamic>?> _waitForRidePickupOtp(
   }
 }
 
+Future<void> _requestRideAcceptedNotification(
+  String subscriptionId,
+  BuildContext context,
+) async {
+  if (subscriptionId.trim().isEmpty) return;
+
+  try {
+    await httpPost(
+      Config.notifyRideAccepted,
+      {'subscription_id': subscriptionId},
+      context: context,
+    );
+  } catch (_) {
+    debugPrint('Unable to request the ride-accepted notification.');
+  }
+}
+
 Future<void> sendRideAcceptedNotification({
   required String subscriptionId,
 }) async {
   final context = navigatorKey.currentContext;
   if (context == null) return;
 
-  if (subscriptionId.trim().isNotEmpty) {
-    try {
-      await httpPost(
-        Config.notifyRideAccepted,
-        {'subscription_id': subscriptionId},
-        context: context,
-      );
-    } catch (_) {
-      debugPrint('Unable to request the ride-accepted notification.');
-    }
-  }
-
+  final started = Stopwatch()..start();
   final rideId = _normalizedString(box.get('ride_id'));
+
+  // The rider notification must not delay pickup OTP preparation.
+  unawaited(_requestRideAcceptedNotification(subscriptionId, context));
+
   if (rideId.isEmpty) {
     debugPrint('Pickup OTP SMS skipped because the ride ID is unavailable.');
     return;
@@ -372,7 +409,7 @@ Future<void> sendRideAcceptedNotification({
     final riderId = _normalizedString(rideData?['userId']);
 
     debugPrint(
-      'Pickup OTP data ready: '
+      'Pickup OTP data ready after ${started.elapsedMilliseconds}ms: '
       'otp_present=${pickupOtp.isNotEmpty}, '
       'phone_present=${riderPhone.isNotEmpty}, '
       'rider_id_present=${riderId.isNotEmpty}.',
@@ -399,7 +436,10 @@ Future<void> sendRideAcceptedNotification({
     );
 
     if (response is Map && response['success'] == true) {
-      debugPrint('Pickup OTP SMS backend request accepted.');
+      debugPrint(
+        'Pickup OTP SMS backend request accepted after '
+        '${started.elapsedMilliseconds}ms.',
+      );
     } else {
       debugPrint('Backend could not send the pickup OTP SMS.');
     }
